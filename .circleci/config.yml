@@ -1,0 +1,38 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: sudachen/go1127-ci
+
+    parallelism: 1
+
+    environment:
+      MXNET_ENFORCE_DETERMINISM: 1
+      OMP_NUM_THREADS: 4
+      MXNET_OMP_MAX_THREADS: 4
+      CC_TEST_REPORTER_ID: b29dcee5fa2c8248c3132394893fa3708a2ea8c9b84827090175ad9261e0d63a
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          # https://circleci.com/docs/2.0/caching/
+          keys:
+            - v1-pkg-cache
+
+      - run: make build
+
+      - run: make run-tests
+
+      - run: /usr/local/bin/cc-test-reporter after-build -t gocov
+
+      - save_cache:
+          key: v1-pkg-cache
+          paths:
+            - "/go/pkg"
+
+workflows:
+  version: 2
+  build-workflow:
+    jobs:
+      - build
