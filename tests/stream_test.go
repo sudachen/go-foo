@@ -5,6 +5,7 @@ import (
 	"github.com/sudachen/go-fp/lazy"
 	"gotest.tools/assert"
 	"gotest.tools/assert/cmp"
+	"reflect"
 	"testing"
 )
 
@@ -56,6 +57,12 @@ func Test_NewPanic(t *testing.T) {
 	}))
 }
 
+func Test_NextPanic(t *testing.T) {
+	assert.Assert(t, cmp.Panics(func(){
+		(&lazy.Stream{}).Next(0)
+	}))
+}
+
 func Test_NewFromChan(t *testing.T) {
 	c := make(chan Color)
 	go func() {
@@ -85,6 +92,17 @@ func Test_ConqCollect(t *testing.T) {
 	assert.DeepEqual(t, rs, colors)
 	rs = z.ConqCollect(1).([]Color)
 	assert.DeepEqual(t, rs, colors)
+}
+
+func Test_FilterCatchAll(t *testing.T) {
+	z := lazy.New(colors)
+	r := z.Filter(func(c Color) bool { return false })
+
+	rs := (&lazy.Stream{ Tp: r.Tp, Src: r, CatchAll: true, Func: func(index int, value reflect.Value) reflect.Value {
+		assert.Assert(t, value.Kind() == reflect.Bool)
+		return value
+	}}).ConqCollect(6).([]Color)
+	assert.Assert(t, len(rs) == 0)
 }
 
 func Test_Filter(t *testing.T) {

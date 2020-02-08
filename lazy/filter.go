@@ -17,7 +17,7 @@ func (z *Stream) Filter(f interface{}) *Stream {
 	if !isFilterFunc(vt) {
 		panic("only func(any)bool is allowed as an argument")
 	}
-	fn := func(index int, v reflect.Value, _ interface{}) reflect.Value {
+	fn := func(index int, v reflect.Value) reflect.Value {
 		r := vf.Call([]reflect.Value{v})[0]
 		if r.Bool() {
 			return v

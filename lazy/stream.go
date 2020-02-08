@@ -11,23 +11,20 @@ import (
 Stream implements lazy stream for transformations
 */
 type Stream struct {
-	Ctx interface{} // a context of gathering/transformations, can be nil
-	// if not nil must be readonly or synchronized in Func and/or in Get
-
 	Tp reflect.Type // return type for the Func function
 
 	// transformation function
-	// can be nil if there is no transformation and Tp the same as result of Get
+	// can be nil if there is no transformation and Tp the same as result of Getf (or Src.Tp)
 	// can be called concurrently
 	// returns reflect.ValueOf(true) if result must not be used (filtered out for example)
 	// returns reflect.ValueOf(false) if there are no more values
-	Func func(index int, a reflect.Value, ctx interface{}) reflect.Value
+	Func func(index int, a reflect.Value) reflect.Value
 
 	// the function getting values from any source, can be nil if Src defined
 	// can be called concurrently
 	// returns reflect.ValueOf(true) if result must not be used (filtered out for example)
 	// returns reflect.ValueOf(false) if there are no more values
-	Getf func(index int, ctx interface{}) reflect.Value
+	Getf func(index int) reflect.Value
 
 	// the source stream
 	// can be nil if Get is defined
@@ -46,20 +43,21 @@ func New(c interface{}) *Stream {
 	vt := v.Type()
 	if v.Kind() == reflect.Chan {
 		scase := []reflect.SelectCase{{Dir: reflect.SelectRecv, Chan: v}}
-		getf := func(index int, ctx interface{}) reflect.Value {
-			ctx.(*WaitCounter).Wait(index)
+		wc := &WaitCounter{Value:0}
+		getf := func(index int) reflect.Value {
+			wc.Wait(index)
 			_, r, ok := reflect.Select(scase)
-			ctx.(*WaitCounter).Inc()
+			wc.Inc()
 			if !ok {
 				return reflect.ValueOf(false)
 			}
 			return r
 		}
-		return &Stream{Tp: vt.Elem(), Getf: getf, Ctx: &WaitCounter{Value: 0}}
+		return &Stream{Tp: vt.Elem(), Getf: getf}
 	} else if v.Kind() == reflect.Slice {
 		l := v.Len()
 		tp := vt.Elem()
-		getf := func(index int, ctx interface{}) reflect.Value {
+		getf := func(index int) reflect.Value {
 			if index < l {
 				return v.Index(index)
 			}
@@ -72,30 +70,30 @@ func New(c interface{}) *Stream {
 }
 
 /*
-Get gets value with specified index from the stream
+Next gets (next?) value with specified index from the stream
 
 	if index out of the stream range then returns reflect.ValueOf(false)
 	can awaits for the index in the source stream
 	returns result of stream transformation
 */
-func (z *Stream) Get(index int) reflect.Value {
+func (z *Stream) Next(index int) reflect.Value {
 	var r reflect.Value
 	if z.Getf != nil {
-		r = z.Getf(index, z.Ctx)
+		r = z.Getf(index)
 	} else {
 		if z.Src == nil {
 			panic("both Get and Src are nil, it's impossible to get next value")
 		}
-		r = z.Src.Get(index)
+		r = z.Src.Next(index)
 	}
 	if r.Kind() == reflect.Bool {
 		if z.CatchAll && z.Func != nil {
-			z.Func(index, r, z.Ctx)
+			z.Func(index, r)
 		}
 		return r
 	}
 	if z.Func != nil {
-		r = z.Func(index, r, z.Ctx)
+		r = z.Func(index, r)
 	}
 	return r
 }
