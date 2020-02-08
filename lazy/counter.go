@@ -15,7 +15,7 @@ type WaitCounter struct {
 }
 
 /*
-Wait waits until counter index is not equal to specified
+Wait waits until counter Value is not equal to specified index
 */
 func (c *WaitCounter) Wait(index int) {
 	c.mu.Lock()

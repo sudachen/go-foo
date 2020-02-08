@@ -18,13 +18,13 @@ type Stream struct {
 
 	// transformation function
 	// can be nil if there is no transformation and Tp the same as result of Get
-	// can be called concurrent
+	// can be called concurrently
 	// returns reflect.ValueOf(true) if result must not be used (filtered out for example)
 	// returns reflect.ValueOf(false) if there are no more values
 	Func func(index int, a reflect.Value, ctx interface{}) reflect.Value
 
 	// the function getting values from any source, can be nil if Src defined
-	// can be call concurrent
+	// can be called concurrently
 	// returns reflect.ValueOf(true) if result must not be used (filtered out for example)
 	// returns reflect.ValueOf(false) if there are no more values
 	Getf func(index int, ctx interface{}) reflect.Value
