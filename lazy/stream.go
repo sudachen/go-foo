@@ -43,7 +43,7 @@ func New(c interface{}) *Stream {
 	vt := v.Type()
 	if v.Kind() == reflect.Chan {
 		scase := []reflect.SelectCase{{Dir: reflect.SelectRecv, Chan: v}}
-		wc := &WaitCounter{Value:0}
+		wc := &WaitCounter{Value: 0}
 		getf := func(index int) reflect.Value {
 			wc.Wait(index)
 			_, r, ok := reflect.Select(scase)

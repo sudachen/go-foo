@@ -58,7 +58,7 @@ func Test_NewPanic(t *testing.T) {
 }
 
 func Test_NextPanic(t *testing.T) {
-	assert.Assert(t, cmp.Panics(func(){
+	assert.Assert(t, cmp.Panics(func() {
 		(&lazy.Stream{}).Next(0)
 	}))
 }
@@ -98,7 +98,7 @@ func Test_FilterCatchAll(t *testing.T) {
 	z := lazy.New(colors)
 	r := z.Filter(func(c Color) bool { return false })
 
-	rs := (&lazy.Stream{ Tp: r.Tp, Src: r, CatchAll: true, Func: func(index int, value reflect.Value) reflect.Value {
+	rs := (&lazy.Stream{Tp: r.Tp, Src: r, CatchAll: true, Func: func(index int, value reflect.Value) reflect.Value {
 		assert.Assert(t, value.Kind() == reflect.Bool)
 		return value
 	}}).ConqCollect(6).([]Color)
