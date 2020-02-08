@@ -7,15 +7,12 @@ import (
 	"reflect"
 )
 
-var refFalse = reflect.ValueOf(false)
-var refTrue = reflect.ValueOf(true)
-
 /*
 Stream implements lazy stream for transformations
 */
 type Stream struct {
-	Ctx interface{} // a context of transformations, can be nil
-	// if not nil must be readonly or synchronized in Func
+	Ctx interface{} // a context of gathering/transformations, can be nil
+	// if not nil must be readonly or synchronized in Func and/or in Get
 
 	Tp reflect.Type // return type for the Func function
 
@@ -26,11 +23,11 @@ type Stream struct {
 	// returns reflect.ValueOf(false) if there are no more values
 	Func func(index int, a reflect.Value, ctx interface{}) reflect.Value
 
-	// the function getting values from stream source, can be nil if Src defined
+	// the function getting values from any source, can be nil if Src defined
 	// can be call concurrent
 	// returns reflect.ValueOf(true) if result must not be used (filtered out for example)
 	// returns reflect.ValueOf(false) if there are no more values
-	Get func(index int, ctx interface{}) reflect.Value
+	Getf func(index int, ctx interface{}) reflect.Value
 
 	// the source stream
 	// can be nil if Get is defined
@@ -41,59 +38,51 @@ type Stream struct {
 	CatchAll bool
 }
 
-type Counter struct {
-	Value int
-}
-
-func (c *Counter) Await(index int) {
-
-}
-
-func (c *Counter) Inc() {
-
-}
-
-func (c *Counter) GetInc() int {
-	return 0
-}
-
-func (c *Counter) IncAwait(index int) {
-
-}
 
 /*
 New creates new lazy transformation source from the channel of structs
 */
 func New(c interface{}) *Stream {
 	v := reflect.ValueOf(c)
-	if v.Kind() == reflect.Chan && v.Elem().Kind() == reflect.Struct {
+	vt := v.Type()
+	if v.Kind() == reflect.Chan && vt.Elem().Kind() == reflect.Struct {
 		scase := []reflect.SelectCase{{Dir: reflect.SelectRecv, Chan: v}}
 		getf := func(index int, ctx interface{}) reflect.Value {
-			ctx.(*Counter).Await(index)
+			ctx.(*WaitCounter).Wait(index)
 			_, r, ok := reflect.Select(scase)
-			ctx.(*Counter).Inc()
+			ctx.(*WaitCounter).Inc()
 			if !ok {
 				return reflect.ValueOf(false)
 			}
 			return r
 		}
-		return &Stream{Tp: v.Elem().Type(), Get: getf, Ctx: &Counter{0}}
+		return &Stream{Tp: v.Elem().Type(), Getf: getf, Ctx: &WaitCounter{Value: 0}}
+	} else if v.Kind() == reflect.Slice && vt.Elem().Kind() == reflect.Struct {
+		l := v.Len()
+		tp := vt.Elem()
+		getf := func(index int, ctx interface{}) reflect.Value {
+			if index < l {
+				return v.Index(index)
+			}
+			return reflect.ValueOf(false)
+		}
+		return &Stream{Tp: tp, Getf: getf}
 	} else {
 		panic("only chan struct{...} is allowed as an argument")
 	}
 }
 
 /*
-Next takes next value with in sequence with specified index
+Next gets value with specified index from the stream
 
-	if current index more then specified returns reflect.ValueOf(true)
-	if current index less then specified awaits for index
-	otherwise returns result of stream transformation
+	if index out of the stream range then returns reflect.ValueOf(false)
+	can awaits for the index in the source stream
+	returns result of stream transformation
 */
 func (z *Stream) Next(index int) reflect.Value {
 	var r reflect.Value
-	if z.Get != nil {
-		r = z.Get(index, z.Ctx)
+	if z.Getf != nil {
+		r = z.Getf(index, z.Ctx)
 	} else {
 		if z.Src == nil {
 			panic("both Get and Src are nil, it's impossible to get next value")
@@ -110,4 +99,20 @@ func (z *Stream) Next(index int) reflect.Value {
 		r = z.Func(index, r, z.Ctx)
 	}
 	return r
+}
+
+// isFilterFunc checks is value a predicate function or not
+func isFilterFunc(vt reflect.Type) bool {
+	return vt.Kind() == reflect.Func &&
+		vt.NumIn() == 1 && vt.NumOut() == 1 &&
+		vt.In(0).Kind() == reflect.Struct &&
+		vt.Out(0).Kind() == reflect.Bool
+}
+
+// isTransformFunc checks is value a transform function or not
+func isTransformFunc(vt reflect.Type) bool {
+	return vt.Kind() == reflect.Func &&
+		vt.NumIn() == 1 && vt.NumOut() == 1 &&
+		vt.In(0).Kind() == reflect.Struct &&
+		vt.Out(0).Kind() == reflect.Struct
 }
