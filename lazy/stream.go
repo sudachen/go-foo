@@ -44,7 +44,7 @@ New creates new lazy transformation source from the channel of structs
 func New(c interface{}) *Stream {
 	v := reflect.ValueOf(c)
 	vt := v.Type()
-	if v.Kind() == reflect.Chan && vt.Elem().Kind() == reflect.Struct {
+	if v.Kind() == reflect.Chan {
 		scase := []reflect.SelectCase{{Dir: reflect.SelectRecv, Chan: v}}
 		getf := func(index int, ctx interface{}) reflect.Value {
 			ctx.(*WaitCounter).Wait(index)
@@ -55,8 +55,8 @@ func New(c interface{}) *Stream {
 			}
 			return r
 		}
-		return &Stream{Tp: v.Elem().Type(), Getf: getf, Ctx: &WaitCounter{Value: 0}}
-	} else if v.Kind() == reflect.Slice && vt.Elem().Kind() == reflect.Struct {
+		return &Stream{Tp: vt.Elem(), Getf: getf, Ctx: &WaitCounter{Value: 0}}
+	} else if v.Kind() == reflect.Slice {
 		l := v.Len()
 		tp := vt.Elem()
 		getf := func(index int, ctx interface{}) reflect.Value {
@@ -67,18 +67,18 @@ func New(c interface{}) *Stream {
 		}
 		return &Stream{Tp: tp, Getf: getf}
 	} else {
-		panic("only chan struct{...} is allowed as an argument")
+		panic("only `chan any` and []any are allowed as an argument")
 	}
 }
 
 /*
-Next gets value with specified index from the stream
+Get gets value with specified index from the stream
 
 	if index out of the stream range then returns reflect.ValueOf(false)
 	can awaits for the index in the source stream
 	returns result of stream transformation
 */
-func (z *Stream) Next(index int) reflect.Value {
+func (z *Stream) Get(index int) reflect.Value {
 	var r reflect.Value
 	if z.Getf != nil {
 		r = z.Getf(index, z.Ctx)
@@ -86,7 +86,7 @@ func (z *Stream) Next(index int) reflect.Value {
 		if z.Src == nil {
 			panic("both Get and Src are nil, it's impossible to get next value")
 		}
-		r = z.Src.Next(index)
+		r = z.Src.Get(index)
 	}
 	if r.Kind() == reflect.Bool {
 		if z.CatchAll && z.Func != nil {
@@ -104,14 +104,11 @@ func (z *Stream) Next(index int) reflect.Value {
 func isFilterFunc(vt reflect.Type) bool {
 	return vt.Kind() == reflect.Func &&
 		vt.NumIn() == 1 && vt.NumOut() == 1 &&
-		vt.In(0).Kind() == reflect.Struct &&
 		vt.Out(0).Kind() == reflect.Bool
 }
 
 // isTransformFunc checks is value a transform function or not
 func isTransformFunc(vt reflect.Type) bool {
 	return vt.Kind() == reflect.Func &&
-		vt.NumIn() == 1 && vt.NumOut() == 1 &&
-		vt.In(0).Kind() == reflect.Struct &&
-		vt.Out(0).Kind() == reflect.Struct
+		vt.NumIn() == 1 && vt.NumOut() == 1
 }

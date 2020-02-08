@@ -15,7 +15,7 @@ func (z *Stream) Filter(f interface{}) *Stream {
 	vf := reflect.ValueOf(f)
 	vt := vf.Type()
 	if !isFilterFunc(vt) {
-		panic("only func(struct{...})bool is allowed as an argument")
+		panic("only func(any)bool is allowed as an argument")
 	}
 	fn := func(index int, v reflect.Value, _ interface{}) reflect.Value {
 		r := vf.Call([]reflect.Value{v})[0]

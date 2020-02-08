@@ -12,7 +12,7 @@ func (z *Stream) Collect() interface{} {
 	r := reflect.MakeSlice(reflect.SliceOf(z.Tp), 0, 0)
 	index := 0
 	for {
-		v := z.Next(index)
+		v := z.Get(index)
 		index++
 		if v.Kind() == reflect.Bool {
 			if !v.Bool() {
@@ -40,7 +40,7 @@ func (z *Stream) ConqCollect(concurrency int) interface{} {
 			defer gw.Done()
 			for {
 				n := index.Inc()
-				v := z.Next(n)
+				v := z.Get(n)
 				wc.Wait(n)
 				if v.Kind() != reflect.Bool {
 					r = reflect.Append(r, v)
