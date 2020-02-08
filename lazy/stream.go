@@ -1,6 +1,6 @@
-//
-// Package tables implements lazy data transformation flow
-//
+/*
+Package lazy implements lazy transformation flow
+*/
 package lazy
 
 import (

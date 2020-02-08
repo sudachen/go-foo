@@ -45,7 +45,7 @@ func (c *WaitCounter) Inc() {
 }
 
 /*
-AtcomicCounter - hm, yes it's atomic counter
+AtomicCounter - hm, yes it's atomic counter
 */
 type AtomicCounter struct {
 	Value int32
