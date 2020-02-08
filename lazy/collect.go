@@ -19,7 +19,7 @@ func (z *Stream) Collect() interface{} {
 				break
 			}
 		} else {
-			r = reflect.Append(r,v)
+			r = reflect.Append(r, v)
 		}
 	}
 	return r.Interface()
@@ -32,7 +32,7 @@ ConqCollect executes all lazy transformations and collects result to array.
 func (z *Stream) ConqCollect(concurrency int) interface{} {
 	r := reflect.MakeSlice(reflect.SliceOf(z.Tp), 0, 0)
 	index := &AtomicCounter{0}
-	wc := &WaitCounter{Value:0}
+	wc := &WaitCounter{Value: 0}
 	gw := sync.WaitGroup{}
 	gw.Add(concurrency)
 	for i := 0; i < concurrency; i++ {

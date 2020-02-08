@@ -10,6 +10,7 @@ type Color struct {
 	Color string
 	Index int
 }
+
 var colors = []Color{
 	{"White", 0},
 	{"Yellow", 1},
@@ -64,12 +65,12 @@ func Test_ConqCollect(t *testing.T) {
 
 func Test_Filter(t *testing.T) {
 	z := lazy.New(colors)
-	rs := z.Filter(func(c Color)bool{return c.Index % 2 == 0}).Collect().([]Color)
+	rs := z.Filter(func(c Color) bool { return c.Index%2 == 0 }).Collect().([]Color)
 	for _, c := range rs {
-		assert.Assert(t, c.Index % 2 == 0)
+		assert.Assert(t, c.Index%2 == 0)
 	}
 	for _, c := range colors {
-		if c.Index % 2 == 0 {
+		if c.Index%2 == 0 {
 			assert.Assert(t, rs[c.Index/2].Index == c.Index)
 		}
 	}
@@ -77,12 +78,12 @@ func Test_Filter(t *testing.T) {
 
 func Test_ConqFilter(t *testing.T) {
 	z := lazy.New(colors)
-	rs := z.Filter(func(c Color)bool{return c.Index % 2 == 0}).ConqCollect(6).([]Color)
+	rs := z.Filter(func(c Color) bool { return c.Index%2 == 0 }).ConqCollect(6).([]Color)
 	for _, c := range rs {
-		assert.Assert(t, c.Index % 2 == 0)
+		assert.Assert(t, c.Index%2 == 0)
 	}
 	for _, c := range colors {
-		if c.Index % 2 == 0 {
+		if c.Index%2 == 0 {
 			assert.Assert(t, rs[c.Index/2].Index == c.Index)
 		}
 	}

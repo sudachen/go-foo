@@ -38,7 +38,6 @@ type Stream struct {
 	CatchAll bool
 }
 
-
 /*
 New creates new lazy transformation source from the channel of structs
 */

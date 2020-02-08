@@ -10,8 +10,8 @@ WaitCounter implements barrier counter for lazy flow execution synchronization
 */
 type WaitCounter struct {
 	Value int
-	cond sync.Cond
-	mu sync.Mutex
+	cond  sync.Cond
+	mu    sync.Mutex
 }
 
 /*
@@ -55,5 +55,5 @@ type AtomicCounter struct {
 Inc increments counter
 */
 func (c *AtomicCounter) Inc() int {
-	return int(atomic.AddInt32(&c.Value,1)-1)
+	return int(atomic.AddInt32(&c.Value, 1) - 1)
 }
