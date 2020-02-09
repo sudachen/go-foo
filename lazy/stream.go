@@ -74,7 +74,7 @@ func New(c interface{}, stop ...chan struct{}) *Stream {
 			}
 			return reflect.ValueOf(false)
 		}
-		return &Stream{Tp: tp, Getf: getf, Stopf: func() { flag.Off() } }
+		return &Stream{Tp: tp, Getf: getf, Stopf: func() { flag.Off() }}
 	} else {
 		panic("only `chan any` and []any are allowed as an argument")
 	}

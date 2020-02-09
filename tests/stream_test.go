@@ -156,28 +156,26 @@ func Test_Transf(t *testing.T) {
 	}))
 }
 
-
 func Test_Close(t *testing.T) {
 	z := lazy.New(colors)
 	z.Close()
 	assert.Assert(t, len(z.Collect().([]Color)) == 0)
-
 
 	f := false
 	stop := make(chan struct{})
 	c := make(chan Color)
 	go func() {
 		for _, x := range colors {
-			select{
+			select {
 			case c <- x:
-			case <- stop:
+			case <-stop:
 				f = true
 				break
 			}
 		}
 		close(c)
 	}()
-	z = lazy.New(c,stop).Filter(func(Color)bool{return true})
+	z = lazy.New(c, stop).Filter(func(Color) bool { return true })
 	z.Close()
 	assert.Assert(t, len(z.Collect().([]Color)) == 0)
 	assert.Assert(t, f)

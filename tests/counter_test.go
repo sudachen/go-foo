@@ -21,18 +21,18 @@ func Test_Counter1(t *testing.T) {
 
 func Test_Counter2(t *testing.T) {
 	f := lazy.AtomicFlag{1}
-	assert.Assert(t, f.State() == true )
+	assert.Assert(t, f.State() == true)
 	f.Off()
-	assert.Assert(t, f.State() == false )
+	assert.Assert(t, f.State() == false)
 	f.On()
-	assert.Assert(t, f.State() == true )
+	assert.Assert(t, f.State() == true)
 	f.Off()
-	assert.Assert(t, f.State() == false )
+	assert.Assert(t, f.State() == false)
 
 	f = lazy.AtomicFlag{0}
-	assert.Assert(t, f.State() == false )
+	assert.Assert(t, f.State() == false)
 	f.Off()
-	assert.Assert(t, f.State() == false )
+	assert.Assert(t, f.State() == false)
 	f.On()
-	assert.Assert(t, f.State() == true )
+	assert.Assert(t, f.State() == true)
 }
