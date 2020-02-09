@@ -1,48 +1,6 @@
 package lazy
 
-import (
-	"sync"
-	"sync/atomic"
-)
-
-/*
-WaitCounter implements barrier counter for lazy flow execution synchronization
-*/
-type WaitCounter struct {
-	Value int64
-	cond  sync.Cond
-	mu    sync.Mutex
-}
-
-/*
-Wait waits until counter Value is not equal to specified index
-*/
-func (c *WaitCounter) Wait(index int64) {
-	c.mu.Lock()
-	if c.cond.L == nil {
-		c.cond.L = &c.mu
-	}
-	for c.Value != index {
-		if c.Value > index {
-			panic("index continuity broken")
-		}
-		c.cond.Wait()
-	}
-	c.mu.Unlock()
-}
-
-/*
-Inc increments index and notifies waiting goroutines
-*/
-func (c *WaitCounter) Inc() {
-	c.mu.Lock()
-	if c.cond.L == nil {
-		c.cond.L = &c.mu
-	}
-	c.Value++
-	c.mu.Unlock()
-	c.cond.Broadcast()
-}
+import "sync/atomic"
 
 /*
 AtomicCounter - hm, yes it's atomic counter
@@ -73,7 +31,7 @@ type AtomicFlag struct {
 /*
 Off Switches Value to 0
 */
-func (c *AtomicFlag) Off() {
+func (c *AtomicFlag) Clear() {
 	for {
 		v := atomic.LoadInt32(&c.Value)
 		if v == 0 || atomic.CompareAndSwapInt32(&c.Value, v, 0) {
@@ -85,7 +43,7 @@ func (c *AtomicFlag) Off() {
 /*
 On Switches Value to 1
 */
-func (c *AtomicFlag) On() {
+func (c *AtomicFlag) Set() {
 	for {
 		v := atomic.LoadInt32(&c.Value)
 		if v != 0 || atomic.CompareAndSwapInt32(&c.Value, v, 1) {

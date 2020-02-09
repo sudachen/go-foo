@@ -164,13 +164,16 @@ func Test_Close(t *testing.T) {
 	f := false
 	stop := make(chan struct{})
 	c := make(chan Color)
+	wc := lazy.WaitCounter{Value: 0}
 	go func() {
+	loop:
 		for _, x := range colors {
 			select {
 			case c <- x:
 			case <-stop:
+				wc.Inc()
 				f = true
-				break
+				break loop
 			}
 		}
 		close(c)
@@ -178,5 +181,6 @@ func Test_Close(t *testing.T) {
 	z = lazy.New(c, stop).Filter(func(Color) bool { return true })
 	z.Close()
 	assert.Assert(t, len(z.Collect().([]Color)) == 0)
+	wc.Wait(1)
 	assert.Assert(t, f)
 }

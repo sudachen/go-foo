@@ -45,21 +45,20 @@ New creates new lazy transformation source from the channel of structs
 func New(c interface{}, stop ...chan struct{}) *Stream {
 	v := reflect.ValueOf(c)
 	vt := v.Type()
-	flag := &AtomicFlag{Value: 1}
 	if v.Kind() == reflect.Chan {
 		scase := []reflect.SelectCase{{Dir: reflect.SelectRecv, Chan: v}}
 		wc := &WaitCounter{Value: 0}
 		getf := func(index int64) reflect.Value {
-			wc.Wait(index)
-			_, r, ok := reflect.Select(scase)
-			wc.Inc()
-			if !ok || !flag.State() {
-				return reflect.ValueOf(false)
+			if wc.Wait(index) {
+				_, r, ok := reflect.Select(scase)
+				if wc.Inc() && ok {
+					return r
+				}
 			}
-			return r
+			return reflect.ValueOf(false)
 		}
 		stopf := func() {
-			flag.Off()
+			wc.Stop()
 			for _, s := range stop {
 				close(s)
 			}
@@ -68,13 +67,14 @@ func New(c interface{}, stop ...chan struct{}) *Stream {
 	} else if v.Kind() == reflect.Slice {
 		l := int64(v.Len())
 		tp := vt.Elem()
+		flag := &AtomicFlag{Value: 1}
 		getf := func(index int64) reflect.Value {
 			if index < l && flag.State() {
 				return v.Index(int(index))
 			}
 			return reflect.ValueOf(false)
 		}
-		return &Stream{Tp: tp, Getf: getf, Stopf: func() { flag.Off() }}
+		return &Stream{Tp: tp, Getf: getf, Stopf: func() { flag.Clear() }}
 	} else {
 		panic("only `chan any` and []any are allowed as an argument")
 	}
@@ -113,10 +113,10 @@ func (z *Stream) Next(index int64) reflect.Value {
 Close stops stream to produce new values
 */
 func (z *Stream) Close() {
-	if z.Stopf != nil {
-		z.Stopf()
-	} else if z.Src != nil {
-		z.Src.Close()
+	for x := z; x != nil; x = x.Src {
+		if x.Stopf != nil {
+			x.Stopf()
+		}
 	}
 }
 
