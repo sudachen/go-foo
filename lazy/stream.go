@@ -18,13 +18,13 @@ type Stream struct {
 	// can be called concurrently
 	// returns reflect.ValueOf(true) if result must not be used (filtered out for example)
 	// returns reflect.ValueOf(false) if there are no more values
-	Func func(index int, a reflect.Value) reflect.Value
+	Func func(index int64, a reflect.Value) reflect.Value
 
 	// the function getting values from any source, can be nil if Src defined
 	// can be called concurrently
 	// returns reflect.ValueOf(true) if result must not be used (filtered out for example)
 	// returns reflect.ValueOf(false) if there are no more values
-	Getf func(index int) reflect.Value
+	Getf func(index int64) reflect.Value
 
 	// the source stream
 	// can be nil if Get is defined
@@ -33,37 +33,48 @@ type Stream struct {
 	// normally if Get/Src.Next returns boolean transformation does not applied
 	// CatchAll = true means apply transformation to boolean value but ignore transformation result
 	CatchAll bool
+
+	// to stop producing new values
+	// can be nil if transforms values only
+	Stopf func()
 }
 
 /*
 New creates new lazy transformation source from the channel of structs
 */
-func New(c interface{}) *Stream {
+func New(c interface{}, stop ...chan struct{}) *Stream {
 	v := reflect.ValueOf(c)
 	vt := v.Type()
+	flag := &AtomicFlag{Value: 1}
 	if v.Kind() == reflect.Chan {
 		scase := []reflect.SelectCase{{Dir: reflect.SelectRecv, Chan: v}}
 		wc := &WaitCounter{Value: 0}
-		getf := func(index int) reflect.Value {
+		getf := func(index int64) reflect.Value {
 			wc.Wait(index)
 			_, r, ok := reflect.Select(scase)
 			wc.Inc()
-			if !ok {
+			if !ok || !flag.State() {
 				return reflect.ValueOf(false)
 			}
 			return r
 		}
-		return &Stream{Tp: vt.Elem(), Getf: getf}
+		stopf := func() {
+			flag.Off()
+			for _, s := range stop {
+				close(s)
+			}
+		}
+		return &Stream{Tp: vt.Elem(), Getf: getf, Stopf: stopf}
 	} else if v.Kind() == reflect.Slice {
-		l := v.Len()
+		l := int64(v.Len())
 		tp := vt.Elem()
-		getf := func(index int) reflect.Value {
-			if index < l {
-				return v.Index(index)
+		getf := func(index int64) reflect.Value {
+			if index < l && flag.State() {
+				return v.Index(int(index))
 			}
 			return reflect.ValueOf(false)
 		}
-		return &Stream{Tp: tp, Getf: getf}
+		return &Stream{Tp: tp, Getf: getf, Stopf: func() { flag.Off() } }
 	} else {
 		panic("only `chan any` and []any are allowed as an argument")
 	}
@@ -76,7 +87,7 @@ Next gets (next?) value with specified index from the stream
 	can awaits for the index in the source stream
 	returns result of stream transformation
 */
-func (z *Stream) Next(index int) reflect.Value {
+func (z *Stream) Next(index int64) reflect.Value {
 	var r reflect.Value
 	if z.Getf != nil {
 		r = z.Getf(index)
@@ -96,6 +107,17 @@ func (z *Stream) Next(index int) reflect.Value {
 		r = z.Func(index, r)
 	}
 	return r
+}
+
+/*
+Close stops stream to produce new values
+*/
+func (z *Stream) Close() {
+	if z.Stopf != nil {
+		z.Stopf()
+	} else if z.Src != nil {
+		z.Src.Close()
+	}
 }
 
 // isFilterFunc checks is value a predicate function or not

@@ -16,7 +16,7 @@ func (z *Stream) Map(f interface{}) *Stream {
 	if !isTransformFunc(vt) {
 		panic("only func(any)any is allowed as an argument")
 	}
-	fn := func(index int, v reflect.Value) reflect.Value {
+	fn := func(index int64, v reflect.Value) reflect.Value {
 		return vf.Call([]reflect.Value{v})[0]
 	}
 	return &Stream{Func: fn, Src: z, Tp: vt.Out(0)}

@@ -10,7 +10,7 @@ Collect executes all lazy transformations and collects result to array
 */
 func (z *Stream) Collect() interface{} {
 	r := reflect.MakeSlice(reflect.SliceOf(z.Tp), 0, 0)
-	index := 0
+	index := int64(0)
 	for {
 		v := z.Next(index)
 		index++
