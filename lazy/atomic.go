@@ -29,7 +29,7 @@ type AtomicFlag struct {
 }
 
 /*
-Off Switches Value to 0
+Clear switches Value to 0 atomically
 */
 func (c *AtomicFlag) Clear() {
 	for {
@@ -41,7 +41,7 @@ func (c *AtomicFlag) Clear() {
 }
 
 /*
-On Switches Value to 1
+Set switches Value to 1 atomically
 */
 func (c *AtomicFlag) Set() {
 	for {
