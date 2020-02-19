@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"github.com/sudachen/go-fp/lazy"
+	"github.com/sudachen/go-fp/fu"
 	"gotest.tools/assert"
 	"testing"
 )
@@ -12,15 +12,15 @@ type Option3 int
 type Option4 float64
 
 func option1(o ...interface{}) bool {
-	return lazy.Option(Option1(false), o).Bool()
+	return fu.Option(Option1(false), o).Bool()
 }
 
 func option2(o ...interface{}) string {
-	return lazy.Option(Option2(""), o).String()
+	return fu.Option(Option2(""), o).String()
 }
 
 func option3(o ...interface{}) int {
-	return int(lazy.Option(Option3(0), o).Int())
+	return int(fu.Option(Option3(0), o).Int())
 }
 
 func Test_Option1(t *testing.T) {
@@ -45,8 +45,8 @@ func Test_Option3(t *testing.T) {
 
 func Test_Option4(t *testing.T) {
 	opts := []interface{}{Option3(42), Option2("hello"), Option1(true), Option4(1.0)}
-	assert.Assert(t, lazy.IntOption(Option3(0), opts) == 42)
-	assert.Assert(t, lazy.StrOption(Option2(""), opts) == "hello")
-	assert.Assert(t, lazy.FloatOption(Option4(0), opts) == 1.0)
-	assert.Assert(t, lazy.BoolOption(Option1(false), opts) == true)
+	assert.Assert(t, fu.IntOption(Option3(0), opts) == 42)
+	assert.Assert(t, fu.StrOption(Option2(""), opts) == "hello")
+	assert.Assert(t, fu.FloatOption(Option4(0), opts) == 1.0)
+	assert.Assert(t, fu.BoolOption(Option1(false), opts) == true)
 }
