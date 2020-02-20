@@ -19,7 +19,7 @@ func Reverse(slice interface{}) {
 	}
 }
 
-func ReversedCopy(slice interface{}) interface{} {
+func Reversed(slice interface{}) interface{} {
 	v := reflect.ValueOf(slice)
 	if v.Kind() != reflect.Slice && v.Kind() != reflect.Array {
 		panic(fmt.Sprintf("slice must have a slice/array type, but %v", v.Type()))

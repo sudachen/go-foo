@@ -1,5 +1,22 @@
 package fu
 
+import "reflect"
+
+/*
+Fnz returns the first non zero value
+*/
+func Fnz(a ...interface{}) interface{} {
+	for _, i := range a {
+		if !reflect.ValueOf(i).IsZero() {
+			return i
+		}
+	}
+	return 0
+}
+
+/*
+Fnzi returns the first non integer zero value
+*/
 func Fnzi(a ...int) int {
 	for _, i := range a {
 		if i != 0 {
@@ -9,7 +26,10 @@ func Fnzi(a ...int) int {
 	return 0
 }
 
-func Fnzi64(a ...int64) int64 {
+/*
+Fnzl returns the first non zero long integer value
+*/
+func Fnzl(a ...int64) int64 {
 	for _, i := range a {
 		if i != 0 {
 			return i
@@ -18,6 +38,9 @@ func Fnzi64(a ...int64) int64 {
 	return 0
 }
 
+/*
+Fnzf returns the first non zero float value
+*/
 func Fnzf(a ...float32) float32 {
 	for _, i := range a {
 		if i != 0 {
@@ -27,7 +50,10 @@ func Fnzf(a ...float32) float32 {
 	return 0
 }
 
-func Fnzf64(a ...float64) float64 {
+/*
+Fnzd returns the first non zero double value
+*/
+func Fnzd(a ...float64) float64 {
 	for _, i := range a {
 		if i != 0 {
 			return i
