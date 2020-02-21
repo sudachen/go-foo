@@ -16,7 +16,7 @@ func Option(t interface{}, o []interface{}) reflect.Value {
 }
 
 func IfsOption(t interface{}, o []interface{}) interface{} {
-	return Option(t,o).Interface()
+	return Option(t, o).Interface()
 }
 
 func StrOption(t interface{}, o []interface{}) string {
@@ -44,7 +44,7 @@ func MultiOption(o []interface{}, t ...interface{}) (reflect.Value, int) {
 			}
 		}
 	}
-	return reflect.ValueOf(t[0]),0
+	return reflect.ValueOf(t[0]), 0
 }
 
 func StrMultiOption(o []interface{}, t ...interface{}) (string, int) {
@@ -58,7 +58,7 @@ func AllStrOptions(o []interface{}, t ...interface{}) []string {
 		for _, tv := range t {
 			v := reflect.ValueOf(x)
 			if v.Type() == reflect.TypeOf(tv) {
-				r = append(r,v.String())
+				r = append(r, v.String())
 			}
 		}
 	}
