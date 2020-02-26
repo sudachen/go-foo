@@ -35,6 +35,10 @@ func BoolOption(t interface{}, o []interface{}) bool {
 	return Option(t, o).Bool()
 }
 
+func RuneOption(t interface{}, o []interface{}) rune {
+	return Option(t, o).Interface().(rune)
+}
+
 func MultiOption(o []interface{}, t ...interface{}) (reflect.Value, int) {
 	for _, x := range o {
 		for i, tv := range t {

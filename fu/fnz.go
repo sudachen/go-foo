@@ -39,9 +39,9 @@ func Fnzl(a ...int64) int64 {
 }
 
 /*
-Fnzf returns the first non zero float value
+Fnzr returns the first non zero float value
 */
-func Fnzf(a ...float32) float32 {
+func Fnzr(a ...float32) float32 {
 	for _, i := range a {
 		if i != 0 {
 			return i

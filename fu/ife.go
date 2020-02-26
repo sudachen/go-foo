@@ -31,9 +31,9 @@ func Ifel(expr bool, x int64, y int64) int64 {
 }
 
 /*
-Ifef returns x if expr == true else returns y
+Ifer returns x if expr == true else returns y
 */
-func Ifef(expr bool, x float32, y float32) float32 {
+func Ifer(expr bool, x float32, y float32) float32 {
 	if expr {
 		return x
 	}
