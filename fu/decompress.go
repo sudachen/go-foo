@@ -132,4 +132,3 @@ func decompress(rd io.Reader) *decomp {
 		return decompressor(qr, false)
 	}
 }
-

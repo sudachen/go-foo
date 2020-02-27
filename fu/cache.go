@@ -29,4 +29,3 @@ func CacheFile(f string) string {
 	_ = os.MkdirAll(path.Dir(r), 0777)
 	return r
 }
-

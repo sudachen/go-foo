@@ -1,4 +1,4 @@
-module github.com/sudachen/go-fp
+module github.com/sudachen/go-foo
 
 go 1.13
 

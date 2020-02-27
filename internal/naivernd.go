@@ -11,7 +11,7 @@ type NaiveRandom struct {
 }
 
 func (nr *NaiveRandom) Reseed() {
-	atomic.StoreInt32(&nr.value,int32(time.Now().UnixNano() + int64(os.Getpid())))
+	atomic.StoreInt32(&nr.value, int32(time.Now().UnixNano()+int64(os.Getpid())))
 }
 
 func (nr *NaiveRandom) Next() int32 {
@@ -29,4 +29,3 @@ func (nr *NaiveRandom) Next() int32 {
 	}
 	return r
 }
-

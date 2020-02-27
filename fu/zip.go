@@ -26,7 +26,11 @@ func (q ZipFile_) Open() (f io.ReadCloser, err error) {
 	if err != nil {
 		return
 	}
-	defer func() { if xf != nil { _ = xf.Close()}} ()
+	defer func() {
+		if xf != nil {
+			_ = xf.Close()
+		}
+	}()
 	var r *zip.Reader
 	r, err = zip.NewReader(xf.(io.ReaderAt), FileSize(xf))
 	for _, n := range r.File {
@@ -35,7 +39,7 @@ func (q ZipFile_) Open() (f io.ReadCloser, err error) {
 			if err != nil {
 				return nil, err
 			}
-			return WrapClose(zf,func()error{
+			return WrapClose(zf, func() error {
 				_ = zf.Close()
 				return xf.Close()
 			}), nil
@@ -43,4 +47,3 @@ func (q ZipFile_) Open() (f io.ReadCloser, err error) {
 	}
 	return nil, xerrors.Errorf("zip archive does not contain file " + q.FileName)
 }
-

@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"github.com/sudachen/go-fp/fu"
+	"github.com/sudachen/go-foo/fu"
 	"gotest.tools/assert"
 	"testing"
 )

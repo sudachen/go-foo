@@ -8,6 +8,7 @@ import (
 )
 
 type Cached string
+
 func (c Cached) Remove() (err error) {
 	s := CacheFile(string(c))
 	_, err = os.Stat(s)
@@ -18,16 +19,16 @@ func (c Cached) Remove() (err error) {
 }
 
 type External_ struct {
-	url string
+	url   string
 	cache string
 }
 
 func External(url string, opts ...interface{}) External_ {
-	return External_{url, StrOption(Cached(""),opts)}
+	return External_{url, StrOption(Cached(""), opts)}
 }
 
 func (e External_) Open() (io.ReadCloser, error) {
-	return CachedDownload(e.url,e.cache)
+	return CachedDownload(e.url, e.cache)
 }
 
 func CachedDownload(url string, cached string) (_ io.ReadCloser, err error) {
@@ -44,7 +45,7 @@ func CachedDownload(url string, cached string) (_ io.ReadCloser, err error) {
 			return
 		}
 	} else {
-		if f, err = Tempfile("external-noncached"); err != nil {
+		if f, err = Tempfile("external-noncached-*"); err != nil {
 			return nil, xerrors.Errorf("could not create temporal file: %w", err)
 		}
 	}
@@ -66,4 +67,3 @@ func download(url string, writer io.Writer) error {
 	_, err = io.Copy(writer, resp.Body)
 	return err
 }
-
