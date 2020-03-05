@@ -12,6 +12,10 @@ type Streamed_ bool
 
 const Streamed = Streamed_(true)
 
+func (c Cached) String() string {
+	return CacheFile(string(c))
+}
+
 func (c Cached) Remove() (err error) {
 	s := CacheFile(string(c))
 	_, err = os.Stat(s)
@@ -61,7 +65,7 @@ func CachedDownload(url string, cached string) (_ io.ReadCloser, err error) {
 		_ = f.Close()
 		return nil, xerrors.Errorf("download error: %w", err)
 	}
-	_ = ResetFile(f)
+	_,_ = f.(io.Seeker).Seek(0,0)
 	return f, nil
 }
 

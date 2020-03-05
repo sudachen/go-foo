@@ -2,6 +2,7 @@ package fu
 
 import (
 	"os"
+	"os/user"
 	"path"
 	"path/filepath"
 )
@@ -11,11 +12,15 @@ const cacheGoFp = ".cache/gofper"
 var FullCacheDir string
 
 func init() {
-	if u, ok := os.LookupEnv("HOME"); ok {
-		FullCacheDir, _ = filepath.Abs(filepath.Join(u, cacheGoFp))
-	} else {
-		FullCacheDir, _ = filepath.Abs(cacheGoFp)
+	homedir, _ := os.LookupEnv("HOME")
+	usr, err := user.Current()
+	if err == nil {
+		homedir = usr.HomeDir
 	}
+	if homedir == "" {
+		homedir = "/tmp"
+	}
+	FullCacheDir, _ = filepath.Abs(filepath.Join(homedir, cacheGoFp))
 }
 
 func CacheDir(d string) string {
