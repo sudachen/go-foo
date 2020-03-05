@@ -4,12 +4,16 @@ import (
 	"reflect"
 )
 
-func Option(t interface{}, o []interface{}) reflect.Value {
+func Option(t interface{}, o interface{}) reflect.Value {
+	xs := reflect.ValueOf(o)
 	tv := reflect.ValueOf(t)
-	for _, x := range o {
-		v := reflect.ValueOf(x)
-		if v.Type() == tv.Type() {
-			return v
+	for i := 0; i < xs.Len(); i++ {
+		x := xs.Index(i)
+		if x.Kind() == reflect.Interface {
+			x = x.Elem()
+		}
+		if x.Type() == tv.Type() {
+			return x
 		}
 	}
 	return tv
@@ -36,7 +40,7 @@ func BoolOption(t interface{}, o []interface{}) bool {
 }
 
 func RuneOption(t interface{}, o []interface{}) rune {
-	return Option(t, o).Interface().(rune)
+	return rune(Option(t, o).Int())
 }
 
 func MultiOption(o []interface{}, t ...interface{}) (reflect.Value, int) {

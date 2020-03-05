@@ -1,6 +1,7 @@
 package lazy
 
 import (
+	"math"
 	"sync"
 	"sync/atomic"
 )
@@ -9,62 +10,64 @@ import (
 WaitCounter implements barrier counter for lazy flow execution synchronization
 */
 type WaitCounter struct {
-	Value int64
+	Value uint64
 	cond  sync.Cond
 	mu    sync.Mutex
 }
 
 /*
-Wait waits until counter Value is not equal to specified index
+Wait waits until counter Integer is not equal to specified index
 */
-func (c *WaitCounter) Wait(index int64) bool {
-	r := true
+func (c *WaitCounter) Wait(index uint64) (r bool) {
+	r = true
+	if atomic.LoadUint64(&c.Value) == index {
+		// mostly when executes consequentially
+		return
+	}
 	c.mu.Lock()
 	if c.cond.L == nil {
 		c.cond.L = &c.mu
 	}
 	for c.Value != index {
 		if c.Value > index {
+			if c.Value == math.MaxUint64 {
+				r = false
+				break
+			}
 			panic("index continuity broken")
 		}
-		if c.Value >= 0 {
-			c.cond.Wait()
-		} else {
-			r = false
-			break
-		}
+		c.cond.Wait()
 	}
 	c.mu.Unlock()
-	return r
+	return
 }
 
 /*
-Inc increments index and notifies waiting goroutines
+PostInc increments index and notifies waiting goroutines
 */
-func (c *WaitCounter) Inc() bool {
-	r := false
+func (c *WaitCounter) Inc() (r bool) {
 	c.mu.Lock()
 	if c.cond.L == nil {
 		c.cond.L = &c.mu
 	}
-	if c.Value >= 0 {
-		atomic.AddInt64(&c.Value, 1)
+	if c.Value < math.MaxUint64 {
+		atomic.AddUint64(&c.Value, 1)
 		r = true
 	}
 	c.mu.Unlock()
 	c.cond.Broadcast()
-	return r
+	return
 }
 
 /*
-Stop sets Value to -1 and notifies waiting goroutines. It means also counter will not increment more
+Stop sets Integer to ~uint64(0) and notifies waiting goroutines. It means also counter will not increment more
 */
 func (c *WaitCounter) Stop() {
 	c.mu.Lock()
 	if c.cond.L == nil {
 		c.cond.L = &c.mu
 	}
-	atomic.StoreInt64(&c.Value, -1)
+	atomic.StoreUint64(&c.Value, math.MaxUint64)
 	c.mu.Unlock()
 	c.cond.Broadcast()
 }
@@ -73,5 +76,5 @@ func (c *WaitCounter) Stop() {
 Stopped returns true if counter is stopped and will not increment more
 */
 func (c *WaitCounter) Stopped() bool {
-	return atomic.LoadInt64(&c.Value) == -1
+	return atomic.LoadUint64(&c.Value) == math.MaxUint64
 }

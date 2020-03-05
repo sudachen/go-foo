@@ -81,9 +81,9 @@ func IndexOfMin(a interface{}) int {
 /*
 Mini returns minimal int value
 */
-func Mini(a ...int) int {
-	q := a[0]
-	for _, x := range a[1:] {
+func Mini(a int, b ...int) int {
+	q := a
+	for _, x := range b {
 		if x < q {
 			q = x
 		}
@@ -92,11 +92,24 @@ func Mini(a ...int) int {
 }
 
 /*
-Minf returns minimal float value
+Minr returns minimal float32 value
 */
-func Minf(a ...float32) float32 {
-	q := a[0]
-	for _, x := range a[1:] {
+func Minr(a float32, b ...float32) float32 {
+	q := a
+	for _, x := range b {
+		if x < q {
+			q = x
+		}
+	}
+	return q
+}
+
+/*
+Mind returns minimal float32 value
+*/
+func Mind(a float64, b ...float64) float64 {
+	q := a
+	for _, x := range b {
 		if x < q {
 			q = x
 		}
@@ -115,9 +128,9 @@ func IndexOfMax(a interface{}) int {
 /*
 Maxi returns maximal int value
 */
-func Maxi(a ...int) int {
-	q := a[0]
-	for _, x := range a[1:] {
+func Maxi(a int, b ...int) int {
+	q := a
+	for _, x := range b {
 		if x > q {
 			q = x
 		}
@@ -126,11 +139,24 @@ func Maxi(a ...int) int {
 }
 
 /*
-Maxf returns maximal float32 value
+Maxr returns maximal float32 value
 */
-func Maxf(a ...float32) float32 {
-	q := a[0]
-	for _, x := range a[1:] {
+func Maxr(a float32, b ...float32) float32 {
+	q := a
+	for _, x := range b {
+		if x > q {
+			q = x
+		}
+	}
+	return q
+}
+
+/*
+Maxd returns maximal float64 value
+*/
+func Maxd(a float64, b ...float64) float64 {
+	q := a
+	for _, x := range b {
 		if x > q {
 			q = x
 		}

@@ -8,6 +8,9 @@ import (
 )
 
 type Cached string
+type Streamed_ bool
+
+const Streamed = Streamed_(true)
 
 func (c Cached) Remove() (err error) {
 	s := CacheFile(string(c))
@@ -19,15 +22,19 @@ func (c Cached) Remove() (err error) {
 }
 
 type External_ struct {
-	url   string
-	cache string
+	url      string
+	cache    string
+	streamed bool
 }
 
 func External(url string, opts ...interface{}) External_ {
-	return External_{url, StrOption(Cached(""), opts)}
+	return External_{url, StrOption(Cached(""), opts), false}
 }
 
 func (e External_) Open() (io.ReadCloser, error) {
+	if e.streamed {
+		return StreamedDownload(e.url)
+	}
 	return CachedDownload(e.url, e.cache)
 }
 
@@ -39,7 +46,7 @@ func CachedDownload(url string, cached string) (_ io.ReadCloser, err error) {
 			if f, err = os.Open(cached); err != nil {
 				return nil, xerrors.Errorf("filed to open cached file: %w", err)
 			}
-			return
+			return f, nil
 		}
 		if f, err = os.Create(cached); err != nil {
 			return
@@ -66,4 +73,13 @@ func download(url string, writer io.Writer) error {
 	defer resp.Body.Close()
 	_, err = io.Copy(writer, resp.Body)
 	return err
+}
+
+func StreamedDownload(url string) (_ io.ReadCloser, err error) {
+	resp, err := http.Get(url)
+	if err != nil {
+		return
+	}
+	rd := resp.Body
+	return &WrapcloseXf{rd, func() error { return rd.Close() }}, nil
 }

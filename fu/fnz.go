@@ -61,3 +61,39 @@ func Fnzd(a ...float64) float64 {
 	}
 	return 0
 }
+
+/*
+Fnze returns the first non nil error
+*/
+func Fnze(e ...error) error {
+	for _, i := range e {
+		if i != nil {
+			return i
+		}
+	}
+	return nil
+}
+
+/*
+Fnzs returns the first non empty string
+*/
+func Fnzs(e ...string) string {
+	for _, i := range e {
+		if i != "" {
+			return i
+		}
+	}
+	return ""
+}
+
+/*
+Fnzb returns the first non false bool
+*/
+func Fnzb(e ...bool) bool {
+	for _, i := range e {
+		if i {
+			return i
+		}
+	}
+	return false
+}

@@ -19,13 +19,13 @@ func init() {
 }
 
 func CacheDir(d string) string {
-	r := path.Join(FullCacheDir, d)
+	r := Ifes(filepath.IsAbs(d), d, path.Join(FullCacheDir, d))
 	_ = os.MkdirAll(r, 0777)
 	return r
 }
 
 func CacheFile(f string) string {
-	r := path.Join(FullCacheDir, f)
+	r := Ifes(filepath.IsAbs(f), f, path.Join(FullCacheDir, f))
 	_ = os.MkdirAll(path.Dir(r), 0777)
 	return r
 }

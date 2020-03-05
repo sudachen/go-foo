@@ -37,15 +37,15 @@ func Test_Counter2(t *testing.T) {
 	for i := 0; i < N; i++ {
 		wg.Add(1)
 		go func(i int) {
-			if wc1.Wait(int64(i)) {
+			if wc1.Wait(uint64(i)) {
 				x[i] = i + 1
 				wc1.Inc()
 			}
-			if wc2.Wait(int64(i + 1)) {
+			if wc2.Wait(uint64(i + 1)) {
 				x[i] = N - i
 				wc2.Inc()
 			}
-			if wc3.Wait(int64(i + 1)) {
+			if wc3.Wait(uint64(i + 1)) {
 				x[i] = 0
 				wc3.Inc()
 			}
@@ -53,13 +53,13 @@ func Test_Counter2(t *testing.T) {
 		}(i)
 	}
 
-	wc1.Wait(int64(N))
+	wc1.Wait(uint64(N))
 	for i := 0; i < N; i++ {
 		assert.Assert(t, x[i] == i+1)
 	}
 	assert.Assert(t, wc2.Inc() == true)
 	assert.Assert(t, wc2.Stopped() == false)
-	wc2.Wait(int64(N + 1))
+	wc2.Wait(uint64(N + 1))
 	for i := 0; i < N; i++ {
 		assert.Assert(t, x[i] == N-i)
 	}

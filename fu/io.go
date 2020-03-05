@@ -11,6 +11,15 @@ type Input interface {
 	Open() (io.ReadCloser, error)
 }
 
+type Output interface {
+	Create() (io.WriteCloser, error)
+}
+
+type Inout interface {
+	Input
+	Output
+}
+
 type Sizeable interface {
 	Size() int64
 }
@@ -69,12 +78,12 @@ func Tempfile(pattern string) (_ io.ReadWriteCloser, err error) {
 	return &temporalXf{regularXf{f}, false}, nil
 }
 
-type wrapcloseXf struct {
+type WrapcloseXf struct {
 	io.Reader
 	close func() error
 }
 
-func (w wrapcloseXf) Close() error {
+func (w WrapcloseXf) Close() error {
 	if w.close != nil {
 		err := w.close()
 		w.close = nil
@@ -83,13 +92,34 @@ func (w wrapcloseXf) Close() error {
 	return nil
 }
 
-func WrapClose(rd io.Reader, close func() error) io.ReadCloser {
-	return &wrapcloseXf{rd, close}
+func (w *WrapcloseXf) Open() (io.ReadCloser, error) {
+	return w, nil
+}
+
+func WrapClose(rd io.Reader, close func() error) *WrapcloseXf {
+	return &WrapcloseXf{rd, close}
 }
 
 type StringIO string
 
 func (s StringIO) Open() (io.ReadCloser, error) {
-	return wrapcloseXf{bytes.NewBufferString(string(s)), nil},
+	return &WrapcloseXf{bytes.NewBufferString(string(s)), nil},
 		nil
+}
+
+type CloserChain [2]io.Closer
+
+func (c CloserChain) Close() error {
+	for _, x := range c {
+		if x != nil {
+			_ = x.Close()
+		}
+	}
+	return nil
+}
+
+type File string
+
+func (f File) Open() (io.ReadCloser, error) {
+	return os.Open(string(f))
 }

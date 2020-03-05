@@ -52,7 +52,7 @@ func (d *decomp) Read(p []byte) (n int, err error) {
 		}
 		d.count = 0
 	}
-	k := Mini(n, d.size[d.side]-d.count)
+	k := Mini(len(p), d.size[d.side]-d.count)
 	copy(p[:k], d.buffer[d.side][d.count:d.count+k])
 	d.count += k
 	return k, nil
@@ -78,7 +78,7 @@ func (d *decomp) Run() io.ReadCloser {
 				d.size[side] = k
 				select {
 				case d.next <- side:
-					side = (side + 1%2)
+					side = (side + 1) % 2
 				case <-stop:
 					return
 				}

@@ -1,22 +1,39 @@
 package lazy
 
-import "sync/atomic"
+import (
+	"sync/atomic"
+)
 
 /*
 AtomicCounter - hm, yes it's atomic counter
 */
 type AtomicCounter struct {
-	Value int64
+	Value uint64
 }
 
 /*
-Inc increments counter
+PostInc increments counter and returns OLD value
 */
-func (c *AtomicCounter) Inc() int64 {
+func (c *AtomicCounter) PostInc() uint64 {
 	for {
-		v := atomic.LoadInt64(&c.Value)
-		if atomic.CompareAndSwapInt64(&c.Value, v, v+1) {
+		v := atomic.LoadUint64(&c.Value)
+		if atomic.CompareAndSwapUint64(&c.Value, v, v+1) {
 			return v
+		}
+	}
+}
+
+/*
+Dec decrements counter and returns NEW value
+*/
+func (c *AtomicCounter) Dec() uint64 {
+	for {
+		v := atomic.LoadUint64(&c.Value)
+		if v == 0 {
+			panic("counter underflow")
+		}
+		if atomic.CompareAndSwapUint64(&c.Value, v, v-1) {
+			return v - 1
 		}
 	}
 }
@@ -29,27 +46,29 @@ type AtomicFlag struct {
 }
 
 /*
-Clear switches Value to 0 atomically
+Clear switches Integer to 0 atomically
 */
-func (c *AtomicFlag) Clear() {
-	for {
-		v := atomic.LoadInt32(&c.Value)
-		if v == 0 || atomic.CompareAndSwapInt32(&c.Value, v, 0) {
-			break
+func (c *AtomicFlag) Clear() (r bool) {
+	for atomic.LoadInt32(&c.Value) == 1 {
+		r = atomic.CompareAndSwapInt32(&c.Value, 1, 0)
+		if r {
+			return
 		}
 	}
+	return
 }
 
 /*
-Set switches Value to 1 atomically
+Set switches Integer to 1 atomically
 */
-func (c *AtomicFlag) Set() {
-	for {
-		v := atomic.LoadInt32(&c.Value)
-		if v != 0 || atomic.CompareAndSwapInt32(&c.Value, v, 1) {
+func (c *AtomicFlag) Set() (r bool) {
+	for atomic.LoadInt32(&c.Value) == 0 {
+		r = atomic.CompareAndSwapInt32(&c.Value, 0, 1)
+		if r {
 			break
 		}
 	}
+	return
 }
 
 /*
