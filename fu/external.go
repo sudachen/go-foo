@@ -65,7 +65,7 @@ func CachedDownload(url string, cached string) (_ io.ReadCloser, err error) {
 		_ = f.Close()
 		return nil, xerrors.Errorf("download error: %w", err)
 	}
-	_,_ = f.(io.Seeker).Seek(0,0)
+	_, _ = f.(io.Seeker).Seek(0, 0)
 	return f, nil
 }
 

@@ -31,11 +31,13 @@ func Decompress(source interface{}) io.ReadCloser {
 	return &errReader{io.ErrUnexpectedEOF}
 }
 
+const bufferCounts = 4
+
 type decomp struct {
 	reader   io.Reader
 	canclose bool
-	buffer   [2][decompressorBufferSize]byte
-	size     [2]int
+	buffer   [bufferCounts][decompressorBufferSize]byte
+	size     [bufferCounts]int
 	side     int
 	count    int
 	err      error
@@ -63,7 +65,7 @@ func decompressor(rd io.Reader, canclose bool) *decomp {
 		reader:   rd,
 		canclose: canclose,
 		stop:     make(chan struct{}),
-		next:     make(chan int),
+		next:     make(chan int, bufferCounts-2),
 		err:      io.EOF,
 	}
 }
@@ -78,7 +80,7 @@ func (d *decomp) Run() io.ReadCloser {
 				d.size[side] = k
 				select {
 				case d.next <- side:
-					side = (side + 1) % 2
+					side = (side + 1) % bufferCounts
 				case <-stop:
 					return
 				}

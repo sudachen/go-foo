@@ -32,16 +32,20 @@ func (q ZipFile_) Open() (f io.ReadCloser, err error) {
 		}
 	}()
 	var r *zip.Reader
-	r, err = zip.NewReader(xf.(io.ReaderAt), FileSize(xf))
+	if r, err = zip.NewReader(xf.(io.ReaderAt), FileSize(xf)); err != nil {
+		return
+	}
 	for _, n := range r.File {
 		if n.Name == q.FileName {
 			zf, err := n.Open()
 			if err != nil {
 				return nil, err
 			}
+			xxf := xf
+			xf = nil
 			return WrapClose(zf, func() error {
 				_ = zf.Close()
-				return xf.Close()
+				return xxf.Close()
 			}), nil
 		}
 	}

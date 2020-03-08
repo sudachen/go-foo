@@ -253,3 +253,11 @@ func Error(err error) Stream {
 		return reflect.Value{}, err
 	}
 }
+
+func Wrap(e interface{}) Stream {
+	if stream, ok := e.(Stream); ok {
+		return stream
+	} else {
+		return Error(e.(error))
+	}
+}
