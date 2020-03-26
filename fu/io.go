@@ -11,8 +11,14 @@ type Input interface {
 	Open() (io.ReadCloser, error)
 }
 
+type Whole interface {
+	io.Writer
+	Commit() error
+	End()
+}
+
 type Output interface {
-	Create() (io.WriteCloser, error)
+	Create() (Whole, error)
 }
 
 type Inout interface {
@@ -84,32 +90,10 @@ func Tempfile(pattern string) (_ io.ReadWriteCloser, err error) {
 	return &temporalXf{regularXf{f}, false}, nil
 }
 
-type WrapcloseXf struct {
-	io.Reader
-	close func() error
-}
-
-func (w WrapcloseXf) Close() error {
-	if w.close != nil {
-		err := w.close()
-		w.close = nil
-		return err
-	}
-	return nil
-}
-
-func (w *WrapcloseXf) Open() (io.ReadCloser, error) {
-	return w, nil
-}
-
-func WrapClose(rd io.Reader, close func() error) *WrapcloseXf {
-	return &WrapcloseXf{rd, close}
-}
-
 type StringIO string
 
 func (s StringIO) Open() (io.ReadCloser, error) {
-	return &WrapcloseXf{bytes.NewBufferString(string(s)), nil},
+	return Reader_{bytes.NewBufferString(string(s)), nil},
 		nil
 }
 
@@ -128,4 +112,97 @@ type File string
 
 func (f File) Open() (io.ReadCloser, error) {
 	return os.Open(string(f))
+}
+
+type FFile_ struct{ *os.File }
+
+func (ff FFile_) Fail() {
+	fname := ff.File.Name()
+	_ = ff.File.Truncate(0)
+	_ = ff.File.Close()
+	_ = os.Remove(fname)
+}
+
+func (f File) Create() (Whole, error) {
+	x, err := os.Create(string(f))
+	if err != nil {
+		return nil, err
+	}
+	return &Whole_{FFile_{x}}, nil
+}
+
+type Writer_ struct {
+	io.Writer
+	close []func(bool) error
+}
+
+func Writer(wr io.Writer, close ...func(bool) error) Writer_ {
+	return Writer_{wr, close}
+}
+
+func (w Writer_) Create() (Whole, error) {
+	return &w, nil
+}
+
+func (w *Writer_) End() {
+	for _, f := range w.close {
+		_ = f(false)
+	}
+	return
+}
+
+func (w *Writer_) Commit() (err error) {
+	for _, f := range w.close {
+		if e := f(true); e != nil {
+			err = e
+		}
+	}
+	w.close = nil
+	return
+}
+
+type Reader_ struct {
+	io.Reader
+	close []func() error
+}
+
+func (r Reader_) Close() (err error) {
+	for _, f := range r.close {
+		if e := f(); e != nil {
+			err = e
+		}
+	}
+	return
+}
+
+func (r Reader_) Open() (io.ReadCloser, error) {
+	return r, nil
+}
+
+func Reader(rd io.Reader, close ...func() error) Reader_ {
+	return Reader_{rd, close}
+}
+
+type Whole_ struct{ io.Writer }
+type Fallible interface {
+	Fail()
+}
+
+func (t *Whole_) End() {
+	if t.Writer != nil {
+		if f, ok := t.Writer.(Fallible); ok {
+			f.Fail()
+		} else if c, ok := t.Writer.(io.Closer); ok {
+			_ = c.Close()
+		}
+		t.Writer = nil
+	}
+}
+
+func (t *Whole_) Commit() (err error) {
+	if c, ok := t.Writer.(io.Closer); ok {
+		err = c.Close()
+	}
+	t.Writer = nil
+	return
 }

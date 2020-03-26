@@ -43,7 +43,7 @@ func (q ZipFile_) Open() (f io.ReadCloser, err error) {
 			}
 			xxf := xf
 			xf = nil
-			return WrapClose(zf, func() error {
+			return Reader(zf, func() error {
 				_ = zf.Close()
 				return xxf.Close()
 			}), nil

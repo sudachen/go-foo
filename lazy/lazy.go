@@ -2,9 +2,12 @@ package lazy
 
 import (
 	"github.com/sudachen/go-foo/fu"
+	"golang.org/x/xerrors"
 	"math"
 	"reflect"
 	"runtime"
+	"sync/atomic"
+	"unsafe"
 )
 
 const STOP = math.MaxUint64
@@ -13,6 +16,9 @@ type Stream func(index uint64) (reflect.Value, error)
 type Source func() Stream
 type Sink func(reflect.Value) error
 type Parallel int
+
+var falseValue = reflect.ValueOf(false)
+var trueValue = reflect.ValueOf(true)
 
 func (zf Source) Map(f interface{}) Source {
 	return func() Stream {
@@ -38,7 +44,7 @@ func (zf Source) Filter(f interface{}) Source {
 			if fv.Call([]reflect.Value{v})[0].Bool() {
 				return
 			}
-			return reflect.ValueOf(true), nil
+			return trueValue, nil
 		}
 	}
 }
@@ -85,7 +91,7 @@ func (zf Source) Parallel(concurrency ...int) Source {
 			if x, ok := <-c; ok {
 				return x.Value, x.error
 			}
-			return reflect.ValueOf(false), nil
+			return falseValue, nil
 		}
 	}
 }
@@ -93,20 +99,21 @@ func (zf Source) Parallel(concurrency ...int) Source {
 func (zf Source) First(n int) Source {
 	return func() Stream {
 		z := zf()
-		count := AtomicCounter{0}
+		count := 0
 		wc := WaitCounter{Value: 0}
 		return func(index uint64) (v reflect.Value, err error) {
 			v, err = z(index)
 			if index != STOP && wc.Wait(index) {
-				if err == nil && v.Kind() != reflect.Bool {
-					if count.PostInc() < uint64(n) {
-						wc.Inc()
-						return
+				if count < n && err == nil {
+					if v.Kind() != reflect.Bool {
+						count++
 					}
+					wc.Inc()
+					return
 				}
 				wc.Stop()
 			}
-			return reflect.ValueOf(false), nil
+			return falseValue, nil
 		}
 	}
 }
@@ -150,7 +157,7 @@ func Chan(c interface{}, stop ...chan struct{}) Source {
 					return r, nil
 				}
 			}
-			return reflect.ValueOf(false), nil
+			return falseValue, nil
 		}
 	}
 }
@@ -164,17 +171,17 @@ func List(list interface{}) Source {
 			if index < l && flag.State() {
 				return v.Index(int(index)), nil
 			}
-			return reflect.ValueOf(false), nil
+			return falseValue, nil
 		}
 	}
 }
 
 const iniCollectLength = 13
 
-func (z Source) Collect() (r interface{}, err error) {
+func (zf Source) Collect() (r interface{}, err error) {
 	length := 0
 	values := reflect.ValueOf((interface{})(nil))
-	err = z.Drain(func(v reflect.Value) error {
+	err = zf.Drain(func(v reflect.Value) error {
 		if length == 0 {
 			values = reflect.MakeSlice(reflect.SliceOf(v.Type()), 0, iniCollectLength)
 		}
@@ -190,16 +197,16 @@ func (z Source) Collect() (r interface{}, err error) {
 	return values.Interface(), nil
 }
 
-func (z Source) LuckyCollect() interface{} {
-	t, err := z.Collect()
+func (zf Source) LuckyCollect() interface{} {
+	t, err := zf.Collect()
 	if err != nil {
 		panic(err)
 	}
 	return t
 }
 
-func (z Source) Count() (count int, err error) {
-	err = z.Drain(func(v reflect.Value) error {
+func (zf Source) Count() (count int, err error) {
+	err = zf.Drain(func(v reflect.Value) error {
 		if v.Kind() != reflect.Bool {
 			count++
 		}
@@ -208,8 +215,8 @@ func (z Source) Count() (count int, err error) {
 	return
 }
 
-func (z Source) LuckyCount() int {
-	c, err := z.Count()
+func (zf Source) LuckyCount() int {
+	c, err := zf.Count()
 	if err != nil {
 		panic(err)
 	}
@@ -230,7 +237,7 @@ func (zf Source) RandFilter(seed int, prob float64, t bool) Source {
 				if v.Kind() != reflect.Bool {
 					p := nr.Float()
 					if (t && p <= prob) || (!t && p > prob) {
-						v = reflect.ValueOf(true) // skip
+						v = trueValue // skip
 					}
 				}
 				wc.Inc()
@@ -240,17 +247,20 @@ func (zf Source) RandFilter(seed int, prob float64, t bool) Source {
 	}
 }
 
-func (z Source) RandSkip(seed int, prob float64) Source {
-	return z.RandFilter(seed, prob, true)
+func (zf Source) RandSkip(seed int, prob float64) Source {
+	return zf.RandFilter(seed, prob, true)
 }
 
-func (z Source) Rand(seed int, prob float64) Source {
-	return z.RandFilter(seed, prob, false)
+func (zf Source) Rand(seed int, prob float64) Source {
+	return zf.RandFilter(seed, prob, false)
 }
 
-func Error(err error) Stream {
-	return func(_ uint64) (reflect.Value, error) {
-		return reflect.Value{}, err
+func Error(err error, z ...Stream) Stream {
+	return func(index uint64) (reflect.Value, error) {
+		if index == STOP && len(z) > 0 {
+			z[0](STOP)
+		}
+		return falseValue, err
 	}
 }
 
@@ -259,5 +269,57 @@ func Wrap(e interface{}) Stream {
 		return stream
 	} else {
 		return Error(e.(error))
+	}
+}
+
+func (zf Source) Chain(zx Source, eqt ...func(a, b reflect.Value) bool) Source {
+	return func() Stream {
+		z0 := zf()
+		z1 := zx()
+		b := uint64(0)
+		ptr := unsafe.Pointer(nil)
+		return func(index uint64) (v reflect.Value, err error) {
+			q := atomic.LoadUint64(&b)
+			if index == STOP {
+				_, err = z0(index)
+				_, err1 := z1(index)
+				if q > 0 || err == nil {
+					err = err1
+				}
+				return falseValue, err
+			}
+			if q == 0 || index < q {
+				v, err = z0(index)
+				if err == nil {
+					if v.Kind() == reflect.Bool {
+						if !v.Bool() { // end first stream
+							atomic.CompareAndSwapUint64(&b, q, index)
+							return trueValue, nil
+						}
+					}
+					if q == 0 && atomic.LoadPointer(&ptr) == nil {
+						vx := v
+						atomic.CompareAndSwapPointer(&ptr, nil, unsafe.Pointer(&vx))
+					}
+				}
+			} else {
+				v, err = z1(index - q)
+				if err == nil && v.Kind() != reflect.Bool {
+					if p := atomic.LoadPointer(&ptr); p != nil {
+						vx := (*reflect.Value)(p)
+						if v.Type() != vx.Type() {
+							return falseValue, xerrors.Errorf("chained stream is not compatible")
+						}
+						for _, f := range eqt {
+							if !f(v, *vx) {
+								return falseValue, xerrors.Errorf("chained stream has non equal value type")
+							}
+						}
+						atomic.CompareAndSwapPointer(&ptr, p, nil)
+					}
+				}
+			}
+			return
+		}
 	}
 }

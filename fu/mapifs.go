@@ -9,3 +9,12 @@ func MapInterface(m map[string]reflect.Value) map[string]interface{} {
 	}
 	return r
 }
+
+func Strings(m interface{}) (r []string) {
+	x := m.([]interface{})
+	r = make([]string, len(x))
+	for i, v := range x {
+		r[i] = v.(string)
+	}
+	return
+}

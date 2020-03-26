@@ -85,5 +85,5 @@ func StreamedDownload(url string) (_ io.ReadCloser, err error) {
 		return
 	}
 	rd := resp.Body
-	return &WrapcloseXf{rd, func() error { return rd.Close() }}, nil
+	return Reader(rd, func() error { return rd.Close() }), nil
 }
